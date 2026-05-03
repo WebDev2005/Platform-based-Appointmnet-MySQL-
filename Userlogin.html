@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Login - Platform-Based Appointment System</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <div id="cookieNotice" class="cookie-notice">
+        <div class="cookie-content">
+            <span id="closeCookie" style="cursor:pointer; position:absolute; right:15px; top:10px;">✖</span>
+            <p>
+                This site uses cookies to help improve your user experience.
+                Learn more about how we use cookies.
+            </p>
+            <div class="cookie-buttons">
+                <button id="customizeCookies">Customize Cookies</button>
+                <button id="acceptCookies">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <header>
+        <h1>Platform-Based Appointment and Queue Management System</h1>
+    </header>
+
+    <main>
+
+        <div class="container">
+            <h2>User Login</h2>
+
+            <form id="loginForm">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+
+                <button type="submit">Login</button>
+            </form>
+
+            <p id="errorMessage" style="color: red; display: none;">
+                Invalid username or password. Please try to use your Email as a Username.
+            </p>
+
+            <div class="align-center">
+                <p>New user?
+                    <br>Please <span style="color: blue;">Register</span> first before logging in.</p>
+                <button onclick="window.location.href='register.php'">
+                    Register as Customer
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <footer>
+        <p>&copy; 2023 Platform-Based Appointment System</p>
+    </footer>
+
+    <script src="js/script.js"></script>
+</body>
+</html>

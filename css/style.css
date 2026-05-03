@@ -1,0 +1,318 @@
+/* Basic styles for the appointment system 
+Desktop style*/
+
+* {
+    box-sizing: border-box;
+}
+
+/* BODY */
+html, body {
+    height: 100%;
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: #f4f4f4;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* HEADER */
+header {
+    background-color: #007bff;
+    color: white;
+    padding: 15px;
+    text-align: center;
+}
+
+header h1 {
+    font-size: 20px;
+}
+
+/* NAV */
+nav {
+    background-color: #0056b3;
+    position: relative;
+}
+
+/* MENU */
+nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background-color: #0056b3;
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 0.3s ease;
+}
+
+nav ul li {
+    border-bottom: 1px solid #004085;
+}
+
+nav ul li a {
+    color: white;
+    text-decoration: none;
+    display: block;
+    padding: 12px;
+}
+
+/* HAMBURGER */
+#menu-toggle {
+    display: none;
+}
+
+.hamburger {
+    display: block;
+    cursor: pointer;
+    background-color: #004085;
+    border-radius: 5px;
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
+}
+
+.hamburger span {
+    display: block;
+    height: 4px;
+    background: white;
+    margin: 6px;
+}
+
+/* SHOW MENU */
+#menu-toggle:checked ~ ul {
+    transform: scaleY(1);
+}
+
+/* MAIN */
+main {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+/* CONTAINER (LOGIN CARD) */
+.container {
+    width: 100%;
+    max-width: 400px;
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.container h2 {
+    text-align: center;
+}
+
+/* FORM */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* INPUTS */
+input, select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+/* BUTTON */
+button {
+    background-color: #007bff;
+    color: white;
+    padding: 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+/* ALIGN */
+.align-center {
+    text-align: center;
+}
+
+.align-right {
+    text-align: right;
+}
+
+/* TABLE (RESPONSIVE) */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    overflow-x: auto;
+    display: block;
+}
+
+.table th, .table td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+}
+
+/* FOOTER */
+footer {
+    text-align: center;
+    padding: 10px;
+    background-color: #007bff;
+    color: white;
+}
+
+/* ALERT */
+.custom-alert {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    background-color: #333;
+    color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.custom-alert.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+/* COOKIE */
+.cookie-notice {
+    position: fixed;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 400px;
+    background-color: #1f1f1f;
+    color: #fff;
+    padding: 15px;
+    border-radius: 10px;
+    display: none;
+    z-index: 9999;
+}
+
+.cookie-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+/* ===============================================
+   MOBILE RESPONSIVE: DON'T TOUCH THIS IF IT WORKS
+================================================== */
+@media (max-width: 770px) {
+
+    /* REMOVE FLEX ISSUES */
+    body {
+        display: block;
+    }
+
+    main {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 15px;
+    }
+
+    /* HEADER */
+    header h1 {
+        font-size: 14px;
+        padding: 5px;
+    }
+
+    
+    nav {
+        position: relative;
+        min-height: 60px; /* Height of dashboard part*/
+        padding: 10px;
+        text-align: left;
+    }
+
+    nav h2 {
+        font-size: 20px;
+        margin: 0;
+        padding-top: 10px;
+    }
+
+    .hamburger {
+        top: 10px;
+        right: 10px;
+    }
+
+    /* FIX DROPDOWN MENU */
+    nav ul {
+        position: static;
+        transform: none;
+        display: none;
+        margin-top: 45px;     /*Dropdown selection*/
+    }
+
+    #menu-toggle:checked ~ ul {
+        display: block;
+    }
+
+    nav ul li {
+        border-bottom: 1px solid #ccc;
+    }
+
+    /* CONTAINER */
+    .container {
+        width: 100%;
+        max-width: 350px;
+        margin: 0 auto; /* center horizontally */
+        padding: 20px;
+        border-radius: 12px;
+    }
+
+    /* TABLE FIX */
+    .table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .table th, .table td {
+        font-size: 12px;
+        padding: 6px;
+    }
+
+    /* TEXT */
+    p {
+        font-size: 14px;
+    }
+
+    /* BUTTON */
+    button {
+        width: 100%;
+    }
+    
+    footer {
+    	text-align: center;
+    	padding: 10px;
+    	background-color: #007bff;
+    	color: white;
+    }
+}
