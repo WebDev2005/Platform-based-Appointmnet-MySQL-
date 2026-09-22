@@ -1,144 +1,108 @@
 <?php
-include 'db.php';
-session_start();
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/layout.php';
 
-// Admin only
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header("Location: Userlogin.html");
-    exit();
-}
-
+require_role('admin');
 $conn = getDB();
+sweep_no_shows($conn);
 
-// Cancel appointment
-if (isset($_GET['cancel'])) {
-    $id = $_GET['cancel'];
+$status_filter = $_GET['status'] ?? '';
+$search = trim($_GET['q'] ?? '');
 
-    // Update appointments
-    $stmt1 = mysqli_prepare($conn, 
-        "UPDATE appointments SET status = 'cancelled' WHERE appointment_id = ?"
-    );
-    mysqli_stmt_bind_param($stmt1, "i", $id);
-    mysqli_stmt_execute($stmt1);
-
-    // Update queue
-    $stmt2 = mysqli_prepare($conn, 
-        "UPDATE queue SET status = 'cancelled' WHERE appointment_id = ?"
-    );
-    mysqli_stmt_bind_param($stmt2, "i", $id);
-    mysqli_stmt_execute($stmt2);
-}
-
-// Fetch data
-$result = mysqli_query($conn, "
+$sql = "
     SELECT a.appointment_id, u.full_name, u.email, s.service_name,
-           a.appointment_date, a.appointment_time, a.status
+           a.appointment_date, a.appointment_time, a.status, q.queue_number
     FROM appointments a
-    JOIN users u ON a.user_id = u.user_id
-    JOIN services s ON a.service_id = s.service_id
-    ORDER BY a.appointment_date DESC
-");
+    JOIN users u ON u.user_id = a.user_id
+    JOIN services s ON s.service_id = a.service_id
+    LEFT JOIN queue q ON q.appointment_id = a.appointment_id
+    WHERE 1 = 1
+";
+$types = '';
+$params = [];
 
-// Debug check
-if (!$result) {
-    die("Query Failed: " . mysqli_error($conn));
+if ($status_filter !== '') {
+    $sql .= " AND a.status = ?";
+    $types .= 's';
+    $params[] = $status_filter;
 }
+
+if ($search !== '') {
+    $sql .= " AND (u.full_name LIKE ? OR u.email LIKE ?)";
+    $types .= 'ss';
+    $params[] = "%$search%";
+    $params[] = "%$search%";
+}
+
+$sql .= " ORDER BY a.appointment_date DESC, a.appointment_time DESC LIMIT 200";
+
+$stmt = mysqli_prepare($conn, $sql);
+if ($params) {
+    mysqli_stmt_bind_param($stmt, $types, ...$params);
+}
+mysqli_stmt_execute($stmt);
+$appointments = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
+
+render_header('Appointments', 'admin');
+render_flash();
 ?>
+    <h2>All appointments</h2>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Admin - Appointments</title>
-    <link rel="stylesheet" href="css/A-style.css">
-</head>
-<body>
+    <div id="customAlert" class="custom-alert"><p id="alertMessage"></p></div>
 
-<header>
-    <h1>Admin Appointment Management</h1>
-</header>
-
-<nav>
-    <h2>Admin Menu</h2>
-
-    <input type="checkbox" id="menu-toggle">
-    <label for="menu-toggle" class="hamburger">
-        <span></span>
-        <span></span>
-        <span></span>
-    </label>
-
-    <ul>
-        <li><a href="admin-dashboard.php">Dashboard</a></li>
-        <li><a href="admin-appointments.php">Customer Appointments</a></li>
-        <li><a href="admin_queue-status.html">Queue Status</a></li>
-        <li><a href="archive.php">Archive</a></li>
-        <li><a href="admin-index.html">Home</a></li>
-        <li><a href="logout.php">Logout</a></li>
-    </ul>
-</nav>
-
-<main class="container">
-
-    <h2>All Appointments</h2>
-    
-	<div id="customAlert" class="custom-alert">
-    	<p id="alertMessage"></p>
-	</div>
-    <div class="align-right">
-        <button id="serveNextBtn" style="margin-bottom: 10px;">
-            Serve Next
-        </button>
-    </div>
-
-    <br>
+    <form method="GET" class="form-row">
+        <div>
+            <label>Patient</label>
+            <input type="text" name="q" value="<?= h($search) ?>" placeholder="name or email">
+        </div>
+        <div>
+            <label>Status</label>
+            <select name="status">
+                <option value="">All</option>
+                <?php foreach (STATUS_LABELS as $value => $label) { ?>
+                    <option value="<?= h($value) ?>" <?= $status_filter === $value ? 'selected' : '' ?>><?= h($label) ?></option>
+                <?php } ?>
+            </select>
+        </div>
+        <div><button type="submit">Filter</button></div>
+        <div><button type="button" id="serveNextBtn">Serve next</button></div>
+    </form>
 
     <table class="table">
         <thead>
             <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Doctor</th>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Status</th>
-                <th>Action</th>
+                <th>Date</th><th>Time</th><th>Queue #</th><th>Patient</th>
+                <th>Email</th><th>Doctor</th><th>Status</th><th>Actions</th>
             </tr>
         </thead>
-
         <tbody>
-        <?php while ($row = mysqli_fetch_assoc($result)) { ?>
+        <?php foreach ($appointments as $row) { ?>
             <tr>
-                <td><?= $row['full_name'] ?></td>
-                <td><?= $row['email'] ?></td>
-                <td><?= $row['service_name'] ?></td>
-                <td><?= $row['appointment_date'] ?></td>
-                <td><?= $row['appointment_time'] ?></td>
-
-                <td style="
-                    <?= $row['status'] === 'done' ? 'color:green;' : '' ?>
-                    <?= $row['status'] === 'cancelled' ? 'color:red;' : '' ?>
-                ">
-                    <?= $row['status'] ?>
-                </td>
-
+                <td><?= h($row['appointment_date']) ?></td>
+                <td><?= h(date('g:i A', strtotime($row['appointment_time']))) ?></td>
+                <td><?= $row['queue_number'] ? (int) $row['queue_number'] : '-' ?></td>
+                <td><?= h($row['full_name']) ?></td>
+                <td><?= h($row['email']) ?></td>
+                <td><?= h($row['service_name']) ?></td>
+                <td><span class="badge badge-<?= h($row['status']) ?>"><?= h(status_label($row['status'])) ?></span></td>
                 <td>
-                    <?php if ($row['status'] !== 'done' && $row['status'] !== 'cancelled') { ?>
-                        <a href="?cancel=<?= $row['appointment_id'] ?>" 
-                           onclick="return confirm('Cancel this appointment?')">
-                           Cancel
-                        </a>
-                    <?php } else { ?>
-                        -
+                    <a href="consultation.php?appointment_id=<?= (int) $row['appointment_id'] ?>">Chart</a>
+                    <?php if (!in_array($row['status'], ['done', 'cancelled'], true)) { ?>
+                        <form class="inline-form" method="POST" action="cancel_appointment.php"
+                              onsubmit="return confirm('Cancel this appointment?')">
+                            <input type="hidden" name="appointment_id" value="<?= (int) $row['appointment_id'] ?>">
+                            <input type="hidden" name="return_to" value="admin-appointments.php">
+                            <button type="submit">Cancel</button>
+                        </form>
                     <?php } ?>
                 </td>
             </tr>
         <?php } ?>
+        <?php if (!$appointments) { ?>
+            <tr><td colspan="8" class="muted">No appointments match this filter.</td></tr>
+        <?php } ?>
         </tbody>
     </table>
-
-</main>
-
-<script src="js/script.js"></script>
-</body>
-</html>
+<?php
+render_footer();
+?>
