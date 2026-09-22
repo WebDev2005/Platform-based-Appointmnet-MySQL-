@@ -1,65 +1,39 @@
 <?php
-include 'db.php';
-session_start();
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/helpers.php';
 
 $conn = getDB();
 
-// Check login
+header('Content-Type: application/json');
+
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(null);
     exit();
 }
 
-$user_id = $_SESSION['user_id'];
-
-/* =========================
-   1. GET USER QUEUE NUMBER
-========================= */
 $stmt = mysqli_prepare($conn, "
-    SELECT queue_number 
-    FROM queue 
-    WHERE user_id = ? AND status = 'waiting'
-    ORDER BY queue_number ASC
+    SELECT q.*, a.status AS appointment_status
+    FROM queue q
+    JOIN appointments a ON a.appointment_id = q.appointment_id
+    WHERE q.user_id = ? AND q.status IN ('waiting', 'serving')
+    ORDER BY q.queue_date ASC, q.queue_number ASC
     LIMIT 1
 ");
-
-mysqli_stmt_bind_param($stmt, "i", $user_id);
+mysqli_stmt_bind_param($stmt, "i", $_SESSION['user_id']);
 mysqli_stmt_execute($stmt);
-$result = mysqli_stmt_get_result($stmt);
+$queue = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
-if (mysqli_num_rows($result) > 0) {
-
-    $row = mysqli_fetch_assoc($result);
-    $myQueue = $row['queue_number'];
-
-    /* =========================
-       2. COUNT PEOPLE AHEAD
-    ========================= */
-    $stmt2 = mysqli_prepare($conn, "
-        SELECT COUNT(*) AS total 
-        FROM queue 
-        WHERE queue_number < ? AND status = 'waiting'
-    ");
-
-    mysqli_stmt_bind_param($stmt2, "i", $myQueue);
-    mysqli_stmt_execute($stmt2);
-    $countResult = mysqli_stmt_get_result($stmt2);
-    $countRow = mysqli_fetch_assoc($countResult);
-
-    $position = $countRow['total'] + 1;
-
-    /* =========================
-       3. ESTIMATE WAIT TIME
-    ========================= */
-    $waitTime = ($position - 1) * 10; // 10 mins per person
-
-    echo json_encode([
-        "queue_number" => $myQueue,
-        "position" => $position,
-        "wait_time" => $waitTime
-    ]);
-
-} else {
+if (!$queue) {
     echo json_encode(null);
+    exit();
 }
+
+$position = queue_position($conn, $queue);
+
+echo json_encode([
+    "queue_number" => (int) $queue['queue_number'],
+    "position"     => $position ?? 0,
+    "wait_time"    => $position ? ($position - 1) * 10 : 0,
+    "status"       => status_label($queue['appointment_status']),
+]);
 ?>

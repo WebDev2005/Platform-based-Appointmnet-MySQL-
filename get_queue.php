@@ -1,33 +1,33 @@
 <?php
-include 'db.php';
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/includes/helpers.php';
 
 $conn = getDB();
+sweep_no_shows($conn);
 
-$query = "
-    SELECT 
-        q.queue_number, 
-        u.full_name, 
-        q.status, 
-        a.appointment_time
+$date = $_GET['date'] ?? date('Y-m-d');
+
+$stmt = mysqli_prepare($conn, "
+    SELECT q.queue_number, q.status, u.full_name, s.service_name, a.appointment_time
     FROM queue q
-    JOIN users u ON q.user_id = u.user_id
-    LEFT JOIN appointments a ON q.appointment_id = a.appointment_id
-    ORDER BY q.queue_number DESC
-";
+    JOIN users u ON u.user_id = q.user_id
+    JOIN services s ON s.service_id = q.service_id
+    LEFT JOIN appointments a ON a.appointment_id = q.appointment_id
+    WHERE q.queue_date = ?
+    ORDER BY s.service_name ASC, q.queue_number ASC
+");
+mysqli_stmt_bind_param($stmt, "s", $date);
+mysqli_stmt_execute($stmt);
 
-$result = mysqli_query($conn, $query);
+$queue = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
 
-if (!$result) {
-    die("Query failed: " . mysqli_error($conn));
+// Patient-facing board: show the queue number and doctor, not the full name.
+foreach ($queue as &$row) {
+    $parts = explode(' ', trim($row['full_name']));
+    $row['full_name'] = $parts[0] . ' ' . strtoupper(substr(end($parts), 0, 1)) . '.';
 }
+unset($row);
 
-$queue = [];
-
-while ($row = mysqli_fetch_assoc($result)) {
-    $queue[] = $row;
-}
-
-// Return JSON
 header('Content-Type: application/json');
 echo json_encode($queue);
 ?>

@@ -1,67 +1,81 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/layout.php';
+require_once __DIR__ . '/includes/reports.php';
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header("Location: Userlogin.html");
-    exit();
-}
+$user = require_role('admin');
+$conn = getDB();
+sweep_no_shows($conn);
+
+$today = date('Y-m-d');
+
+$today_stats = query_row($conn, "
+    SELECT COUNT(*) AS appointments,
+           SUM(status IN ('arrived', 'vitals_done', 'in_consultation')) AS in_clinic,
+           SUM(status = 'done') AS done,
+           SUM(status = 'no_show') AS no_show
+    FROM appointments WHERE appointment_date = ?
+", "s", [$today]);
+
+$unpaid = query_row($conn, "
+    SELECT COUNT(*) AS invoices,
+           COALESCE(SUM((SELECT SUM(amount) FROM invoice_items ii WHERE ii.invoice_id = i.invoice_id)), 0) AS total
+    FROM invoices i WHERE i.status <> 'paid'
+");
+
+$patients = query_row($conn, "SELECT COUNT(*) AS total FROM users WHERE role = 'customer'");
+
+$upcoming = query_all($conn, "
+    SELECT a.appointment_id, a.appointment_time, a.status, u.full_name, s.service_name, q.queue_number
+    FROM appointments a
+    JOIN users u ON u.user_id = a.user_id
+    JOIN services s ON s.service_id = a.service_id
+    LEFT JOIN queue q ON q.appointment_id = a.appointment_id
+    WHERE a.appointment_date = ?
+    ORDER BY a.appointment_time
+", "s", [$today]);
+
+render_header('Dashboard', 'admin');
+render_flash();
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Platform-Based Appointment System</title>
-    <link rel="stylesheet" href="css/A-style.css">
-</head>
-<body>
-    <header>
-        <h1>Platform-Based Appointment and Queue Management System</h1>
-    </header>
-    <nav>
-        <h2>Dashboard</h2>
-        <input type="checkbox" id="menu-toggle">
-        <label for="menu-toggle" class="hamburger">
-            <span></span>
-            <span></span>
-            <span></span>
-        </label>
-        <ul>
-            <li><a href="admin-dashboard.php">Dashboard</a></li>
-            <li><a href="admin-appointments.php">Customer Appointments</a></li>
-            <li><a href="admin_queue-status.html">Queue Status</a></li>
-            <li><a href="archive.php">View Archive</a></li>
-            <li><a href="admin-index.html">Home</a></li>
-            <li><a href="logout.php">Logout</a></li>
-        </ul>
-    </nav>
-    <main class="container">
-        <h3>Welcome Admin!</h3>
-        <p>Welcome to the dashboard. Here you can edit and control all the appointment with ease.
-            All the changes in the appointment will be taken responsibility by the user.
-        </p>
-        <br>
+    <h3>Welcome, <?= h($user['full_name']) ?></h3>
+    <p class="muted">Clinic overview for <?= h(date('D, d M Y')) ?>.</p>
 
-        <h3>Customer Appointments</h3>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Doctor</th>
-                    <th>Date</th>
-                    <th>Time</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody id="adminAppointmentsTable">
-                <!-- Appointments will be loaded here -->
-            </tbody>
-        </table>
+    <div class="grid">
+        <div class="stat"><span class="value"><?= (int) $today_stats['appointments'] ?></span><span class="label">Appointments today</span></div>
+        <div class="stat"><span class="value"><?= (int) $today_stats['in_clinic'] ?></span><span class="label">In clinic now</span></div>
+        <div class="stat"><span class="value"><?= (int) $today_stats['done'] ?></span><span class="label">Completed today</span></div>
+        <div class="stat"><span class="value"><?= (int) $today_stats['no_show'] ?></span><span class="label">Missed today</span></div>
+        <div class="stat"><span class="value"><?= h(money($unpaid['total'])) ?></span><span class="label">Unpaid (<?= (int) $unpaid['invoices'] ?> invoices)</span></div>
+        <div class="stat"><span class="value"><?= (int) $patients['total'] ?></span><span class="label">Registered patients</span></div>
+    </div>
 
-    </main>
-    <footer>
-        <p>&copy; 2026 Platform-Based Appointment System BKB</p>
-    </footer>
-    <script src="js/script.js"></script>
-</body>
-</html>
+    <h3>Today's schedule</h3>
+    <table class="table">
+        <thead><tr><th>Time</th><th>Queue #</th><th>Patient</th><th>Doctor</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        <?php foreach ($upcoming as $row) { ?>
+            <tr>
+                <td><?= h(date('g:i A', strtotime($row['appointment_time']))) ?></td>
+                <td><?= $row['queue_number'] ? (int) $row['queue_number'] : '-' ?></td>
+                <td><?= h($row['full_name']) ?></td>
+                <td><?= h($row['service_name']) ?></td>
+                <td><span class="badge badge-<?= h($row['status']) ?>"><?= h(status_label($row['status'])) ?></span></td>
+                <td><a href="consultation.php?appointment_id=<?= (int) $row['appointment_id'] ?>">Open chart</a></td>
+            </tr>
+        <?php } ?>
+        <?php if (!$upcoming) { ?>
+            <tr><td colspan="6" class="muted">No appointments booked for today.</td></tr>
+        <?php } ?>
+        </tbody>
+    </table>
+
+    <p>
+        <a href="staff-dashboard.php">Front desk view</a> &middot;
+        <a href="admin-billing.php">Billing</a> &middot;
+        <a href="admin-followups.php">Follow-ups</a> &middot;
+        <a href="admin-reports.php">Reports</a>
+    </p>
+<?php
+render_footer();
+?>

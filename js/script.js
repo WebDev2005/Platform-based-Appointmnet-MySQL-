@@ -18,9 +18,13 @@ if (document.getElementById('loginForm')) {
         .then(res => res.text())
         .then(data => {
             if (data === "admin") {
-                window.location.href = 'admin-index.html';
+                window.location.href = 'admin-dashboard.php';
+            } else if (data === "staff") {
+                window.location.href = 'staff-dashboard.php';
+            } else if (data === "doctor") {
+                window.location.href = 'doctor-queue.php';
             } else if (data === "customer") {
-                window.location.href = 'index.html';
+                window.location.href = 'dashboard.php';
             } else {
                 document.getElementById('errorMessage').style.display = 'block';
             }

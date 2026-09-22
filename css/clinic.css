@@ -1,0 +1,77 @@
+/* Shared styles for the clinical, billing and reporting screens. */
+
+.flash {
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin: 12px 0;
+    font-weight: 600;
+}
+
+.flash-success { background: #e4f6e7; color: #1c7430; border: 1px solid #b6e0bf; }
+.flash-error   { background: #fdeaea; color: #a32020; border: 1px solid #f2bcbc; }
+
+.card {
+    background: #fff;
+    border: 1px solid #dfe4ea;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.card h3 { margin-top: 0; }
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+}
+
+.stat {
+    background: #fff;
+    border: 1px solid #dfe4ea;
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+}
+
+.stat .value { font-size: 28px; font-weight: 700; display: block; }
+.stat .label { color: #667; font-size: 13px; }
+
+.ticket {
+    background: #0b5ed7;
+    color: #fff;
+    border-radius: 10px;
+    padding: 18px;
+    text-align: center;
+}
+
+.ticket .number { font-size: 44px; font-weight: 800; line-height: 1; }
+
+.badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    background: #eef1f6;
+    color: #33405a;
+}
+
+.badge-done      { background: #e4f6e7; color: #1c7430; }
+.badge-cancelled,
+.badge-no_show   { background: #fdeaea; color: #a32020; }
+.badge-in_consultation { background: #fff3cd; color: #8a6100; }
+
+.inline-form { display: inline; }
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    align-items: end;
+}
+
+.muted { color: #6b7280; }
+
+table.table td .badge { white-space: nowrap; }
